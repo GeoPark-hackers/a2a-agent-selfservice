@@ -19,17 +19,19 @@ class BaseAgentFactory:
 
     def _get_model_config(self) -> dict[str, Any]:
         """Get model configuration based on provider."""
+        import os
+
         if self.settings.llm_provider == "azure_openai":
+            # Set environment variables for litellm Azure OpenAI
+            os.environ["AZURE_API_KEY"] = self.settings.azure_openai_api_key
+            os.environ["AZURE_API_BASE"] = self.settings.azure_openai_endpoint
+            os.environ["AZURE_API_VERSION"] = self.settings.azure_openai_api_version
             return {
                 "model": f"azure/{self.settings.azure_openai_deployment_name}",
-                "api_key": self.settings.azure_openai_api_key,
-                "api_base": self.settings.azure_openai_endpoint,
-                "api_version": self.settings.azure_openai_api_version,
             }
         else:
             return {
                 "model": "gemini-2.0-flash",
-                "api_key": self.settings.google_api_key,
             }
 
     def _create_tool_function(self, tool_def: ToolDefinition) -> Callable[..., Any]:
