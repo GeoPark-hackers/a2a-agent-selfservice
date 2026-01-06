@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # Redis Configuration
     redis_url: str = Field(default="redis://localhost:6379/0")
 
+    # Cosmos DB Configuration
+    cosmos_connection_string: str = Field(default="")
+
     # A2A Configuration
     a2a_service_url: str = Field(default="http://localhost:8000")
     a2a_service_name: str = Field(default="a2a-agent-selfservice")
