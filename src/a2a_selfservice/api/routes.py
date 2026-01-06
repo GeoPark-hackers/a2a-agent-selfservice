@@ -105,21 +105,21 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
         )
 
     try:
-        # Create or get session
+        # Create or get session (ADK session methods are async)
         if request.session_id:
-            session = session_service.get_session(
+            session = await session_service.get_session(
                 app_name="a2a-selfservice",
                 user_id="default",
                 session_id=request.session_id,
             )
             if not session:
-                session = session_service.create_session(
+                session = await session_service.create_session(
                     app_name="a2a-selfservice",
                     user_id="default",
                     session_id=request.session_id,
                 )
         else:
-            session = session_service.create_session(
+            session = await session_service.create_session(
                 app_name="a2a-selfservice",
                 user_id="default",
             )
