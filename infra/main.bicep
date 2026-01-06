@@ -19,13 +19,13 @@ param azureOpenAiEndpoint string = ''
 @secure()
 param azureOpenAiApiKey string = ''
 
-var prefix = 'a2a-selfservice'
-var uniqueSuffix = uniqueString(resourceGroup().id)
-var containerAppName = '${prefix}-${environment}'
-var containerRegistryName = replace('${prefix}acr${uniqueSuffix}', '-', '')
+var prefix = 'a2a'
+var uniqueSuffix = substring(uniqueString(resourceGroup().id), 0, 6)
+var containerAppName = '${prefix}-selfservice-${environment}'
+var containerRegistryName = '${prefix}acr${uniqueSuffix}'
 var logAnalyticsName = '${prefix}-logs-${environment}'
 var containerAppEnvName = '${prefix}-env-${environment}'
-var keyVaultName = '${prefix}-kv-${uniqueSuffix}'
+var keyVaultName = '${prefix}kv${uniqueSuffix}'
 
 // Log Analytics Workspace
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
