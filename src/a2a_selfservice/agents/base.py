@@ -1,9 +1,11 @@
 """Base agent factory for creating ADK agents dynamically."""
 
+import os
 from collections.abc import Callable
 from typing import Any
 
 from google.adk.agents import Agent
+from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools import FunctionTool
 
 from ..config import Settings, get_settings
@@ -15,24 +17,24 @@ class BaseAgentFactory:
 
     def __init__(self, settings: Settings | None = None):
         self.settings = settings or get_settings()
-        self._model_config = self._get_model_config()
+        self._setup_environment()
 
-    def _get_model_config(self) -> dict[str, Any]:
-        """Get model configuration based on provider."""
-        import os
-
+    def _setup_environment(self) -> None:
+        """Set up environment variables for LLM providers."""
         if self.settings.llm_provider == "azure_openai":
             # Set environment variables for litellm Azure OpenAI
             os.environ["AZURE_API_KEY"] = self.settings.azure_openai_api_key
             os.environ["AZURE_API_BASE"] = self.settings.azure_openai_endpoint
             os.environ["AZURE_API_VERSION"] = self.settings.azure_openai_api_version
-            return {
-                "model": f"azure/{self.settings.azure_openai_deployment_name}",
-            }
+
+    def _get_model(self) -> LiteLlm | str:
+        """Get model instance based on provider."""
+        if self.settings.llm_provider == "azure_openai":
+            # Use LiteLlm wrapper for Azure OpenAI
+            return LiteLlm(model=f"azure/{self.settings.azure_openai_deployment_name}")
         else:
-            return {
-                "model": "gemini-2.0-flash",
-            }
+            # Use Gemini model directly (native to ADK)
+            return "gemini-2.0-flash"
 
     def _create_tool_function(self, tool_def: ToolDefinition) -> Callable[..., Any]:
         """Create a callable function from a tool definition."""
@@ -66,10 +68,11 @@ class BaseAgentFactory:
     ) -> Agent:
         """Create an ADK agent from a definition."""
         tools = self.create_tools(definition.tools)
+        model = self._get_model()
 
         agent = Agent(
             name=definition.name,
-            model=self._model_config.get("model", "gemini-2.0-flash"),
+            model=model,
             instruction=definition.system_prompt,
             description=definition.description,
             tools=tools,
