@@ -80,6 +80,10 @@ docker build -t a2a-agent-selfservice .
 docker run -p 8000:8000 --env-file .env a2a-agent-selfservice
 ```
 
+## Documentation
+
+📚 **[Building Agents and Tools Guide](docs/AGENTS_AND_TOOLS.md)** - Complete guide on creating agents, defining tools, and how agents use tools.
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
@@ -99,22 +103,22 @@ curl -X POST http://localhost:8000/api/v1/agents \
   -H "Content-Type: application/json" \
   -d '{
     "definition": {
-      "name": "customer-support-agent",
+      "name": "customer_support_agent",
       "display_name": "Customer Support Agent",
       "description": "Handles customer inquiries",
       "system_prompt": "You are a helpful customer support agent...",
-      "model": "gpt-4o",
-      "tools": [],
-      "sub_agents": []
+      "tools": []
     },
     "deploy_immediately": true
   }'
 ```
 
+> **Note:** Agent names must be valid Python identifiers - use underscores, not hyphens.
+
 ### Invoke an Agent
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/agents/customer-support-agent/invoke \
+curl -X POST http://localhost:8000/api/v1/agents/customer_support_agent/invoke \
   -H "Content-Type: application/json" \
   -d '{
     "message": "How can I reset my password?",
