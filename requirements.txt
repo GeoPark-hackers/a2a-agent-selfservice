@@ -10,4 +10,5 @@ azure-keyvault-secrets>=4.8.0
 openai>=1.55.0
 structlog>=24.4.0
 redis>=5.2.0
+azure-cosmos>=4.7.0
 gunicorn>=23.0.0
