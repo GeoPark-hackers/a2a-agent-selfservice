@@ -7,6 +7,7 @@ import structlog
 from fastapi import APIRouter, HTTPException, status
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.genai import types
 
 from .. import __version__
 from ..agents.registry import AgentRegistry
@@ -118,13 +119,20 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
                 session_id=session_id,
             )
 
-        runner = Runner(agent=agent, app_name="a2a-selfservice", session_service=session_service)
+        runner = Runner(
+            agent=agent, app_name="a2a-selfservice", session_service=session_service
+        )
+
+        # Format message as Content object expected by ADK
+        content = types.Content(
+            role="user", parts=[types.Part(text=request.message)]
+        )
 
         response_text = ""
         async for event in runner.run_async(
             user_id="default",
             session_id=session_id,
-            new_message=request.message,
+            new_message=content,
         ):
             if hasattr(event, "text") and event.text:
                 response_text += event.text
