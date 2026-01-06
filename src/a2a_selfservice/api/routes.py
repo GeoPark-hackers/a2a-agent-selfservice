@@ -139,7 +139,7 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
             session_id=session.id,
             new_message=content,
         ):
-            logger.debug("ADK event received", event_type=type(event).__name__, event=str(event)[:200])
+            logger.debug("ADK event received", event_type=type(event).__name__, event_data=str(event)[:200])
             # Check for content in different event attributes
             if hasattr(event, "content") and event.content:
                 if hasattr(event.content, "parts"):
