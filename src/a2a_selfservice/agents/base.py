@@ -1,6 +1,7 @@
 """Base agent factory for creating ADK agents dynamically."""
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from google.adk.agents import Agent
 from google.adk.models import LlmAgent

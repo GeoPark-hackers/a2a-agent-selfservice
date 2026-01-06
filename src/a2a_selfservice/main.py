@@ -1,20 +1,19 @@
 """Main FastAPI application for the A2A Self-Service platform."""
 
-import structlog
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import __version__
 from .api import router
 from .config import get_settings
-from . import __version__
 
 
 def configure_logging() -> None:
     """Configure structured logging."""
-    settings = get_settings()
     structlog.configure(
         processors=[
             structlog.stdlib.filter_by_level,
@@ -50,7 +49,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="A2A Agent Self-Service",
-        description="Self-service platform for creating and managing AI agents using Google ADK with A2A protocol",
+        description="Self-service platform for AI agents using Google ADK with A2A protocol",
         version=__version__,
         lifespan=lifespan,
         docs_url="/docs" if settings.app_debug else None,

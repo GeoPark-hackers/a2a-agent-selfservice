@@ -1,12 +1,10 @@
 """Agent registry for managing created agents."""
 
-import json
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
 import structlog
-
 from google.adk.agents import Agent
 
 from ..config import Settings, get_settings
@@ -88,9 +86,11 @@ class AgentRegistry:
             raise ValueError(f"Agent '{agent_name}' not found")
         return self._build_response(agent_name)
 
-    async def list_agents(self, page: int = 1, page_size: int = 10) -> tuple[list[AgentResponse], int]:
+    async def list_agents(
+        self, page: int = 1, page_size: int = 10
+    ) -> tuple[list[AgentResponse], int]:
         """List all registered agents."""
-        agents = [self._build_response(name) for name in self._definitions.keys()]
+        agents = [self._build_response(name) for name in self._definitions]
         total = len(agents)
         start = (page - 1) * page_size
         end = start + page_size

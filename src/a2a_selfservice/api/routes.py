@@ -5,10 +5,10 @@ from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, HTTPException, status
-
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 
+from .. import __version__
 from ..agents.registry import AgentRegistry
 from ..config import get_settings
 from ..models import (
@@ -19,7 +19,6 @@ from ..models import (
     AgentResponse,
     HealthResponse,
 )
-from .. import __version__
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -105,7 +104,7 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
         )
 
     session_id = request.session_id or str(uuid4())
-    
+
     try:
         session = session_service.get_session(
             app_name="a2a-selfservice",
@@ -120,7 +119,7 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
             )
 
         runner = Runner(agent=agent, app_name="a2a-selfservice", session_service=session_service)
-        
+
         response_text = ""
         async for event in runner.run_async(
             user_id="default",
