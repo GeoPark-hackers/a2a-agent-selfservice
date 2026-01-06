@@ -104,19 +104,24 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
             detail=f"Agent '{agent_name}' not found or not deployed",
         )
 
-    session_id = request.session_id or str(uuid4())
-
     try:
-        session = session_service.get_session(
-            app_name="a2a-selfservice",
-            user_id="default",
-            session_id=session_id,
-        )
-        if not session:
+        # Create or get session
+        if request.session_id:
+            session = session_service.get_session(
+                app_name="a2a-selfservice",
+                user_id="default",
+                session_id=request.session_id,
+            )
+            if not session:
+                session = session_service.create_session(
+                    app_name="a2a-selfservice",
+                    user_id="default",
+                    session_id=request.session_id,
+                )
+        else:
             session = session_service.create_session(
                 app_name="a2a-selfservice",
                 user_id="default",
-                session_id=session_id,
             )
 
         runner = Runner(
@@ -131,7 +136,7 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
         response_text = ""
         async for event in runner.run_async(
             user_id="default",
-            session_id=session_id,
+            session_id=session.id,
             new_message=content,
         ):
             if hasattr(event, "text") and event.text:
@@ -139,7 +144,7 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
 
         return AgentInvokeResponse(
             response=response_text,
-            session_id=session_id,
+            session_id=session.id,
             agent_name=agent_name,
             metadata=request.context,
         )
