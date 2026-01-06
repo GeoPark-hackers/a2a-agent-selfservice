@@ -50,14 +50,10 @@ async def create_agent(request: AgentCreateRequest) -> AgentResponse:
         logger.info("Agent created", agent_name=request.definition.name)
         return response
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-        ) from None
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
     except Exception as e:
         logger.error("Failed to create agent", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
 @router.get("/agents", response_model=AgentListResponse)
@@ -73,9 +69,7 @@ async def get_agent(agent_name: str) -> AgentResponse:
     try:
         return await registry.get_agent(agent_name)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        ) from None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.post("/agents/{agent_name}/deploy", response_model=AgentResponse)
@@ -84,14 +78,10 @@ async def deploy_agent(agent_name: str) -> AgentResponse:
     try:
         return await registry.deploy_agent(agent_name)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        ) from None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
     except Exception as e:
         logger.error("Failed to deploy agent", agent_name=agent_name, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
 
 
 @router.delete("/agents/{agent_name}", status_code=status.HTTP_204_NO_CONTENT)
@@ -100,9 +90,7 @@ async def delete_agent(agent_name: str) -> None:
     try:
         await registry.delete_agent(agent_name)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        ) from None
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.post("/agents/{agent_name}/invoke", response_model=AgentInvokeResponse)
@@ -130,9 +118,7 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
                 session_id=session_id,
             )
 
-        runner = Runner(
-            agent=agent, app_name="a2a-selfservice", session_service=session_service
-        )
+        runner = Runner(agent=agent, app_name="a2a-selfservice", session_service=session_service)
 
         response_text = ""
         async for event in runner.run_async(
@@ -152,6 +138,4 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
 
     except Exception as e:
         logger.error("Failed to invoke agent", agent_name=agent_name, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e

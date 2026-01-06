@@ -1,10 +1,8 @@
 """Base agent factory for creating ADK agents dynamically."""
 
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable
 
 from google.adk.agents import Agent
-from google.adk.models import LlmAgent
 from google.adk.tools import FunctionTool
 
 from ..config import Settings, get_settings
@@ -62,11 +60,11 @@ class BaseAgentFactory:
         self,
         definition: AgentDefinition,
         sub_agents: list[Agent] | None = None,
-    ) -> LlmAgent:
+    ) -> Agent:
         """Create an ADK agent from a definition."""
         tools = self.create_tools(definition.tools)
 
-        agent = LlmAgent(
+        agent = Agent(
             name=definition.name,
             model=self._model_config.get("model", "gemini-2.0-flash"),
             instruction=definition.system_prompt,
