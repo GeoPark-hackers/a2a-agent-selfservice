@@ -52,8 +52,8 @@ def create_app() -> FastAPI:
         description="Self-service platform for AI agents using Google ADK with A2A protocol",
         version=__version__,
         lifespan=lifespan,
-        docs_url="/docs" if settings.app_debug else None,
-        redoc_url="/redoc" if settings.app_debug else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
     )
 
     app.add_middleware(
