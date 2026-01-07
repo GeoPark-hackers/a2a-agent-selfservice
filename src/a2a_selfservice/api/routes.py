@@ -20,6 +20,7 @@ from ..models import (
     AgentResponse,
     HealthResponse,
 )
+from ..tools import get_tool, list_tools
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -159,3 +160,26 @@ async def invoke_agent(agent_name: str, request: AgentInvokeRequest) -> AgentInv
     except Exception as e:
         logger.error("Failed to invoke agent", agent_name=agent_name, error=str(e))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+
+
+@router.get("/tools")
+async def get_available_tools() -> dict:
+    """List all available tools that can be used by agents.
+    
+    Tools are defined in the repository under src/a2a_selfservice/tools/.
+    """
+    tools = list_tools()
+    tool_info = []
+    
+    for tool_name in tools:
+        func = get_tool(tool_name)
+        if func:
+            tool_info.append({
+                "name": tool_name,
+                "description": func.__doc__.split("\n")[0] if func.__doc__ else "No description",
+            })
+    
+    return {
+        "tools": tool_info,
+        "count": len(tool_info),
+    }

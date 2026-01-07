@@ -5,7 +5,8 @@ This guide explains how to create agents, define tools, and how agents use tools
 ## Table of Contents
 
 - [Creating an Agent](#creating-an-agent)
-- [Defining Tools](#defining-tools)
+- [Available Tools](#available-tools)
+- [Adding New Tools](#adding-new-tools)
 - [How Agents Use Tools](#how-agents-use-tools)
 - [Examples](#examples)
 - [API Reference](#api-reference)
@@ -41,6 +42,8 @@ curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azure
 
 ### Agent with Tools
 
+Tools are pre-defined in the repository. Reference them by name:
+
 ```bash
 curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azurecontainerapps.io/api/v1/agents \
   -H "Content-Type: application/json" \
@@ -49,23 +52,12 @@ curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azure
       "name": "calculator_agent",
       "display_name": "Calculator Agent",
       "description": "An agent that can perform calculations",
-      "system_prompt": "You are a math assistant. When users ask for calculations, use the calculate tool to compute the result.",
+      "system_prompt": "You are a math assistant. Use the calculate tool for math expressions, or add/subtract/multiply/divide for basic operations.",
       "tools": [
-        {
-          "name": "calculate",
-          "description": "Evaluates a mathematical expression and returns the result",
-          "parameters": {
-            "type": "object",
-            "properties": {
-              "expression": {
-                "type": "string",
-                "description": "The mathematical expression to evaluate (e.g., '2 + 2', '10 * 5')"
-              }
-            },
-            "required": ["expression"]
-          },
-          "function_code": "def calculate(expression: str) -> str:\n    try:\n        result = eval(expression)\n        return f\"The result of {expression} is {result}\"\n    except Exception as e:\n        return f\"Error: {str(e)}\""
-        }
+        {"name": "calculate", "description": "Evaluate math expressions"},
+        {"name": "add", "description": "Add two numbers"},
+        {"name": "subtract", "description": "Subtract two numbers"},
+        {"name": "convert_units", "description": "Convert between units"}
       ]
     },
     "deploy_immediately": true
@@ -74,49 +66,98 @@ curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azure
 
 ---
 
-## Defining Tools
+## Available Tools
 
-Tools are functions that agents can call to perform specific actions. Each tool has:
+Tools are pre-defined in the repository for security and control. To see all available tools:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Unique tool name (valid Python identifier) |
-| `description` | string | Yes | What the tool does - the LLM uses this to decide when to call it |
-| `parameters` | object | No | JSON Schema defining the tool's input parameters |
-| `function_code` | string | No | Python code implementing the tool function |
-
-### Tool Parameters (JSON Schema)
-
-Parameters follow JSON Schema format:
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "param_name": {
-      "type": "string|number|boolean|array|object",
-      "description": "What this parameter is for"
-    }
-  },
-  "required": ["param_name"]
-}
+```bash
+curl https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azurecontainerapps.io/api/v1/tools
 ```
 
-### Function Code Format
+### Calculator Tools
 
-The `function_code` is a Python function definition as a string:
+| Tool | Description |
+|------|-------------|
+| `calculate` | Evaluate mathematical expressions safely (e.g., "2 + 2", "sqrt(16)") |
+| `add` | Add two numbers |
+| `subtract` | Subtract two numbers |
+| `multiply` | Multiply two numbers |
+| `divide` | Divide two numbers |
+| `convert_units` | Convert between units (km/miles, celsius/fahrenheit, kg/lbs) |
+
+### Weather Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_weather` | Get current weather for a city |
+| `get_forecast` | Get weather forecast for a city |
+
+### Utility Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_current_time` | Get current date and time (UTC) |
+| `format_json` | Format a JSON string with indentation |
+| `text_length` | Count characters and words in text |
+| `reverse_text` | Reverse a string |
+
+---
+
+## Adding New Tools
+
+Tools are defined in the repository under `src/a2a_selfservice/tools/`. This approach provides:
+
+- ✅ **Security** - No arbitrary code execution
+- ✅ **Version control** - Tools are tracked in git
+- ✅ **Testing** - Tools can be unit tested
+- ✅ **Full Python** - Access to any package or API
+
+### Step 1: Create a Tool File
+
+Create a new file in `src/a2a_selfservice/tools/`:
 
 ```python
-def tool_name(param1: str, param2: int) -> str:
-    # Your logic here
-    return "result"
+# src/a2a_selfservice/tools/my_tools.py
+"""My custom tools."""
+
+from .registry import register_tool
+
+
+@register_tool()
+def my_tool(param1: str, param2: int = 10) -> str:
+    """Short description of what this tool does.
+    
+    Args:
+        param1: Description of param1
+        param2: Description of param2 (default: 10)
+    
+    Returns:
+        A string with the result.
+    """
+    # Your implementation here
+    result = f"Processed {param1} with value {param2}"
+    return result
 ```
 
-**Important:**
-- The function name must match the tool `name`
-- Use type hints for parameters
-- Return a string (the result shown to the user)
-- Keep functions self-contained (no external imports that aren't available)
+### Step 2: Register the Module
+
+Add your module to `src/a2a_selfservice/tools/__init__.py`:
+
+```python
+from . import my_tools  # noqa: F401
+```
+
+### Step 3: Deploy
+
+Commit, push, and deploy. The new tool will be available to all agents.
+
+### Tool Guidelines
+
+- **Use type hints** - Parameters and return types should be typed
+- **Write docstrings** - The first line becomes the tool description for the LLM
+- **Return strings** - Tools should return human-readable strings
+- **Handle errors** - Catch exceptions and return helpful error messages
+- **Keep focused** - Each tool should do one thing well
 
 ---
 
@@ -147,80 +188,83 @@ When a user asks a question that requires one of these tools, use the appropriat
 
 ### 1. Weather Agent
 
-```json
-{
-  "definition": {
-    "name": "weather_agent",
-    "display_name": "Weather Agent",
-    "description": "An agent that provides weather information",
-    "system_prompt": "You are a weather assistant. Use the get_weather tool when users ask about weather conditions in a city.",
-    "tools": [
-      {
-        "name": "get_weather",
-        "description": "Gets the current weather for a city",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "city": {
-              "type": "string",
-              "description": "The city name (e.g., 'New York', 'London')"
-            }
-          },
-          "required": ["city"]
-        },
-        "function_code": "def get_weather(city: str) -> str:\n    weather_data = {\n        'new york': 'Sunny, 72°F',\n        'london': 'Cloudy, 55°F',\n        'tokyo': 'Rainy, 65°F'\n    }\n    city_lower = city.lower()\n    if city_lower in weather_data:\n        return f\"Weather in {city}: {weather_data[city_lower]}\"\n    return f\"Weather data not available for {city}\""
-      }
-    ]
-  },
-  "deploy_immediately": true
-}
+```bash
+curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azurecontainerapps.io/api/v1/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "definition": {
+      "name": "weather_agent",
+      "display_name": "Weather Agent",
+      "description": "An agent that provides weather information",
+      "system_prompt": "You are a weather assistant. Use get_weather for current conditions and get_forecast for multi-day forecasts.",
+      "tools": [
+        {"name": "get_weather", "description": "Get current weather for a city"},
+        {"name": "get_forecast", "description": "Get weather forecast for a city"}
+      ]
+    },
+    "deploy_immediately": true
+  }'
 ```
 
-### 2. Multi-Tool Agent
+### 2. Multi-Tool Utility Agent
 
+```bash
+curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azurecontainerapps.io/api/v1/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "definition": {
+      "name": "utility_agent",
+      "display_name": "Utility Agent",
+      "description": "An agent with multiple utility tools",
+      "system_prompt": "You are a utility assistant. Available tools:\n- calculate: for math expressions\n- convert_units: for unit conversions\n- get_current_time: for current time\n- text_length: to count characters/words",
+      "tools": [
+        {"name": "calculate", "description": "Evaluate math expressions"},
+        {"name": "convert_units", "description": "Convert between units"},
+        {"name": "get_current_time", "description": "Get current time"},
+        {"name": "text_length", "description": "Count characters and words"}
+      ]
+    },
+    "deploy_immediately": true
+  }'
+```
+
+### 3. Invoke an Agent with Tools
+
+```bash
+curl -X POST https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azurecontainerapps.io/api/v1/agents/utility_agent/invoke \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Convert 100 kilometers to miles"}'
+```
+
+Response:
 ```json
 {
-  "definition": {
-    "name": "utility_agent",
-    "display_name": "Utility Agent",
-    "description": "An agent with multiple utility tools",
-    "system_prompt": "You are a utility assistant. Use the appropriate tool based on the user's request:\n- Use 'calculate' for math\n- Use 'convert_units' for unit conversions",
-    "tools": [
-      {
-        "name": "calculate",
-        "description": "Evaluates mathematical expressions",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "expression": {"type": "string", "description": "Math expression"}
-          },
-          "required": ["expression"]
-        },
-        "function_code": "def calculate(expression: str) -> str:\n    return f\"Result: {eval(expression)}\""
-      },
-      {
-        "name": "convert_units",
-        "description": "Converts between units (km to miles, celsius to fahrenheit, etc.)",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "value": {"type": "number", "description": "The value to convert"},
-            "from_unit": {"type": "string", "description": "Source unit"},
-            "to_unit": {"type": "string", "description": "Target unit"}
-          },
-          "required": ["value", "from_unit", "to_unit"]
-        },
-        "function_code": "def convert_units(value: float, from_unit: str, to_unit: str) -> str:\n    conversions = {\n        ('km', 'miles'): lambda x: x * 0.621371,\n        ('miles', 'km'): lambda x: x * 1.60934,\n        ('celsius', 'fahrenheit'): lambda x: x * 9/5 + 32,\n        ('fahrenheit', 'celsius'): lambda x: (x - 32) * 5/9\n    }\n    key = (from_unit.lower(), to_unit.lower())\n    if key in conversions:\n        result = conversions[key](value)\n        return f\"{value} {from_unit} = {result:.2f} {to_unit}\"\n    return f\"Conversion from {from_unit} to {to_unit} not supported\""
-      }
-    ]
-  },
-  "deploy_immediately": true
+  "response": "100 km = 62.1371 miles",
+  "session_id": "abc123",
+  "agent_name": "utility_agent"
 }
 ```
 
 ---
 
 ## API Reference
+
+### List Available Tools
+
+```
+GET /api/v1/tools
+```
+
+**Response:**
+```json
+{
+  "tools": [
+    {"name": "calculate", "description": "Evaluate a mathematical expression safely."},
+    {"name": "get_weather", "description": "Get the current weather for a city."}
+  ],
+  "count": 2
+}
+```
 
 ### Create Agent
 
@@ -236,13 +280,10 @@ POST /api/v1/agents
     "display_name": "string (optional)",
     "description": "string (optional)",
     "system_prompt": "string (required)",
-    "model": "string (optional, default: azure/gpt-4o)",
     "tools": [
       {
-        "name": "string (required)",
-        "description": "string (required)",
-        "parameters": { "JSON Schema (optional)" },
-        "function_code": "string (optional)"
+        "name": "string (required - must match a registered tool)",
+        "description": "string (optional - override for LLM context)"
       }
     ]
   },

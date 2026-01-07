@@ -4,12 +4,16 @@ import os
 from collections.abc import Callable
 from typing import Any
 
+import structlog
 from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools import FunctionTool
 
 from ..config import Settings, get_settings
 from ..models import AgentDefinition, ToolDefinition
+from ..tools import get_tool
+
+logger = structlog.get_logger(__name__)
 
 
 class BaseAgentFactory:
@@ -36,29 +40,38 @@ class BaseAgentFactory:
             # Use Gemini model directly (native to ADK)
             return "gemini-2.0-flash"
 
-    def _create_tool_function(self, tool_def: ToolDefinition) -> Callable[..., Any]:
-        """Create a callable function from a tool definition."""
-        if tool_def.function_code:
-            local_namespace: dict[str, Any] = {}
-            exec(tool_def.function_code, local_namespace)
-            func_name = tool_def.name
-            if func_name in local_namespace:
-                return local_namespace[func_name]
-
-        async def placeholder_tool(**kwargs: Any) -> str:
-            return f"Tool '{tool_def.name}' executed with parameters: {kwargs}"
-
-        placeholder_tool.__name__ = tool_def.name
-        placeholder_tool.__doc__ = tool_def.description
-        return placeholder_tool
+    def _get_tool_function(self, tool_def: ToolDefinition) -> Callable[..., Any] | None:
+        """Get a tool function from the repository registry.
+        
+        Tools must be defined in the repository under src/a2a_selfservice/tools/
+        and registered using the @register_tool() decorator.
+        """
+        # Look up tool in repository registry
+        func = get_tool(tool_def.name)
+        if func:
+            logger.debug("Found tool in registry", tool_name=tool_def.name)
+            return func
+        
+        logger.warning("Tool not found in registry", tool_name=tool_def.name)
+        return None
 
     def create_tools(self, tool_definitions: list[ToolDefinition]) -> list[FunctionTool]:
-        """Create ADK tools from tool definitions."""
+        """Create ADK tools from tool definitions.
+        
+        Tools are looked up from the repository registry. Only tools defined
+        in the codebase and registered with @register_tool() will work.
+        """
         tools = []
         for tool_def in tool_definitions:
-            func = self._create_tool_function(tool_def)
-            tool = FunctionTool(func=func)
-            tools.append(tool)
+            func = self._get_tool_function(tool_def)
+            if func:
+                tool = FunctionTool(func=func)
+                tools.append(tool)
+            else:
+                logger.error(
+                    "Skipping unknown tool - must be defined in repository",
+                    tool_name=tool_def.name
+                )
         return tools
 
     def create_agent(
