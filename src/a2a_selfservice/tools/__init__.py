@@ -3,6 +3,7 @@
 from .registry import get_all_tools, get_tool, list_tools, register_tool
 
 # Import tool modules to register them
+from . import a2a  # noqa: F401
 from . import calculator  # noqa: F401
 from . import utilities  # noqa: F401
 from . import weather  # noqa: F401

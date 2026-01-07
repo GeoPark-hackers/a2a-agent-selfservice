@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from . import __version__
+from .a2a import a2a_router
 from .api import router
 from .config import get_settings
 
@@ -66,10 +67,24 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(router, prefix="/api/v1")
+    app.include_router(a2a_router, prefix="/a2a", tags=["A2A Protocol"])
 
     @app.get("/", include_in_schema=False)
     async def root() -> RedirectResponse:
         return RedirectResponse(url="/docs")
+
+    @app.get("/.well-known/agent.json", include_in_schema=False)
+    async def well_known_agent() -> dict:
+        """Well-known endpoint for platform-level agent discovery."""
+        return {
+            "name": "A2A Self-Service Platform",
+            "description": "Platform for creating and managing AI agents",
+            "url": "https://a2a-selfservice-staging.victorioussea-2cc9367e.eastus.azurecontainerapps.io",
+            "version": __version__,
+            "protocol_version": "0.1",
+            "agents_endpoint": "/api/v1/agents",
+            "a2a_base": "/a2a",
+        }
 
     return app
 
