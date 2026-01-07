@@ -82,7 +82,9 @@ docker run -p 8000:8000 --env-file .env a2a-agent-selfservice
 
 ## Documentation
 
-📚 **[Building Agents and Tools Guide](docs/AGENTS_AND_TOOLS.md)** - Complete guide on creating agents, defining tools, and how agents use tools.
+📚 **[Building Agents and Tools Guide](docs/AGENTS_AND_TOOLS.md)** - Creating agents, defining tools, and how agents use tools.
+
+🔗 **[A2A Protocol Guide](docs/A2A_PROTOCOL.md)** - Agent discovery, task API, and agent-to-agent communication.
 
 ## API Endpoints
 
